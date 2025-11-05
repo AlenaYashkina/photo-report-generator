@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environments
+.env
+.venv/
+venv/
+env/
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Project temp/cache
+tmp/
+*.tmp
+logs/
+*.log
+
+# Reports and generated outputs
+reports/
+output/
+export/
+
+# Photos and heavy assets (keep examples only)
+photos/
+assets/
+
+# Generated workspace data (seeded automatically from examples/reference)
+examples/workspace/*
+!examples/workspace/.gitkeep
+examples/source_photos/
+examples/reference/
+examples/output/
+photo_reports/output/
+reports/
+*.pptx
+*.zip
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.mov
