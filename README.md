@@ -1,66 +1,97 @@
-# Photo Reports Automation
+# Photo Report Generator — Production Automation (Archived)
 
-End-to-end pipeline that turns raw construction or maintenance photo dumps into
-ready-to-share PowerPoint reports. Everything is configuration-driven so a new
-site or work type can be onboarded by editing `.env`, not by touching code.
+![status](https://img.shields.io/badge/status-archived-lightgrey)
+![python](https://img.shields.io/badge/Python-3.10%2B-blue)
 
-- Input: dated photo folders exported from field teams.
-- Output: filtered and stamped images plus daily and work-type presentations.
-- Stack: pure Python 3.10+, concurrency for heavy image passes, PPTX generation via `python-pptx`.
+A finished **Python CLI pipeline** that turns dated photo folders into **stamped images** and **ready-to-share PowerPoint reports**.
+Focus: practical process automation & batch image handling for field ops.
 
-## Why this project exists
+> Repository is frozen. No new features planned; used in production and kept as a work sample.
 
-As a lighting engineer I was the only person responsible for hundreds of photo
-reports each month. The work was repetitive: rename images, pick the best shot,
-stamp metadata, build a slideshow with the correct stage titles. This project
-codifies that routine so I can deliver accurate reports in minutes and spend the
-saved time on analysis, storytelling, or experimenting with AI-assisted tooling.
+---
 
-## How the pipeline works
+## Impact (measurable)
 
-1. **Parse** folder trees (`photo_reports.parser`) and extract structured
-   records: date, construction numbers, detected stage, inferred work type.
-2. **Filter** photos (`photo_reports.filters`) to pick the best variant per
-   scene, apply gentle color correction, and skip already processed files.
-3. **Stamp** images (`photo_reports.stamper`) with date, time, and location
-   overlays using Cairo so every slide is audit-ready.
-4. **Compile PowerPoint** decks (`photo_reports.pptx_creator`) for daily
-   progress and for each enabled work profile, keeping layouts consistent.
-5. **Validate coverage** (`utils.completeness_checker`) against the monthly
-   work plan to ensure contractual scope is met.
+**Per‑photo effort (conservative):**
 
-The orchestration lives in `photo_reports.pipeline.ReportPipeline`. Running
-`python main.py` executes the full chain with concurrency and caching so
-re-runs only touch deltas.
+| Step | Manual time / photo | Automated time / photo |
+|---|---:|---:|
+| Read/select + find metadata | 20–30 s | ~0.5–1.0 s |
+| Stamp date/time/location overlay | 25–40 s | ~0.5–1.0 s |
+| Insert into PPTX with correct layout | 15–20 s | ~0.5–1.0 s |
+| **Total per photo** | **60–90 s** | **~1.5–3.0 s** |
 
-## Quick start
+**At 9,000 photos / month (typical peak):**
+
+- Manual: **~150–225 hours / month**  
+- Automated: **~3.8–7.5 hours / month**  
+- **Time saved:** **~146–221 hours / month** (≈ **3.6–5.5 work weeks**).  
+- Plus: fewer typos in overlays, consistent slide layouts, predictable output.
+
+**Development timeline:** initial build ≈ **2 months**; afterward only small fixes and adjustments discovered in use.
+
+<sub>*Assumptions used: office PC with SSD; manual flow = Photoshop stamp + PPTX placement per photo; automated flow runs end‑to‑end in one command. Values are conservative to avoid overstating speed‑up.*</sub>
+
+---
+
+## Target roles (remote)
+
+- **AI Automation / Prompt Engineer** — LLM-assisted document & photo workflows, API orchestration, structured extraction.
+- **Python Automation Engineer** — batch image processing, metadata pipelines, reproducible CLI tools (Windows).
+- **LLM Integrations Engineer** — OpenAI/HF APIs, prompt chains, lightweight retrieval for reports; productionizing prototypes.
+- **CV / Content Ops (Entry)** — pre/post-processing for computer-vision tasks, dataset prep, stamping/annotation, export to PPTX.
+- **Creative Technologist (GenAI: imaging/audio)** — rapid prototyping with SD/inpainting/TTS for content pipelines.
+
+---
+
+## What this project demonstrates
+
+- Ability to **design and deliver** a Windows‑friendly automation pipeline.
+- **Config‑first** design: new sites/locations are added via `.env` (no code edits).
+- File‑tree parsing and **metadata extraction** (dates, stages, locations).
+- **Programmatic PPTX** assembly (`python-pptx`) with consistent slide layouts.
+- A small sample dataset and docs for **local reproducibility**.
+
+---
+
+## How it works (short)
+
+1. **Parse** dated folder trees → extract date / stage / location.  
+2. **Select / skip**: avoid reprocessing already stamped images.  
+3. **Stamp** images with date/time/location overlays.  
+4. **Compile** `.pptx` decks (daily and by work type) with stable layouts.
+
+Orchestration entrypoint: `python main.py` (see `photo_reports/pipeline.py` for composition).
+
+---
+
+## Quick start (Windows)
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\activate
+.\.venv\Scriptsctivate
 pip install -r requirements.txt
-copy .env.example .env  # adjust paths, dates, work profiles
+copy .env.example .env  # set FOLDER_PATH and reporting window
 python main.py
 ```
 
-The default `.env` already points `FOLDER_PATH` to
-`examples/workspace/ExampleLocation`, a writable copy of the anonymised demo
-dataset. If the workspace folder is missing, it is seeded automatically from
-`examples/reference/ExampleLocation` on first import. Output `.pptx` files are
-**not** versioned to keep the repository lightweight-running the pipeline will
-recreate them in-place.
+**Input:** dated photo folders exported from field teams.  
+**Output:** stamped JPGs + `.pptx` reports in your workspace.
+
+---
 
 ## Key configuration (see `configs/config.py`)
 
-- `FOLDER_PATH` - root directory with source photo archives.
-- `REPORT_MODE` - `daily` or `batch`.
-- `ENABLED_WORK_TYPE` / `BATCH_WORK_TYPES` - select activities for reports.
-- `START_DATE` / `END_DATE` - reporting window.
-- `RAW_IMAGE_MODE`, `PHOTO_LABELS_ENABLED` - toggle filtering and captions.
-- `TITLE_CONTENT`, `MONTH_LABELS`, `WORK_PROFILES` - presentation metadata.
+- `FOLDER_PATH` — root directory with source photo archives.
+- `REPORT_MODE` — `daily` or `batch`.
+- `ENABLED_WORK_TYPE` / `BATCH_WORK_TYPES` — which activities go to reports.
+- `START_DATE` / `END_DATE` — reporting window.
+- `RAW_IMAGE_MODE`, `PHOTO_LABELS_ENABLED` — filtering and caption toggles.
+- `TITLE_CONTENT`, `MONTH_LABELS`, `WORK_PROFILES` — presentation metadata.
 
-`.env.example` ships with a fully anonymised template that mirrors a real-world
-lighting maintenance contract.
+`.env.example` ships with an anonymised template mirroring a real maintenance contract.
+
+---
 
 ## Sample dataset
 
@@ -69,55 +100,40 @@ examples/
 |-- reference/
 |   `-- ExampleLocation/    # pristine snapshot (read-only)
 |-- workspace/
-|   `-- ExampleLocation/    # default working copy used by the pipeline
+|   `-- ExampleLocation/    # working copy used by the pipeline
 `-- source_photos/
-    |-- Days/<CN>/...       # sample daytime shots for populators
+    |-- Days/<CN>/...       # daytime shots for populators
     `-- Works/...           # stage-2 shots for in-progress populators
 ```
 
-- Folder tree mirrors the real-world naming convention (month -> day ->
-  construction -> stage).
-- Excel cache and stamp metadata are pre-generated so the pipeline can verify
-  coverage and metadata on the first run.
-- Generated PowerPoint reports are intentionally excluded (they exceed Git
-  hosting limits). Execute `python main.py` to reproduce them locally.
+- Folder tree mirrors a real naming convention (month → day → construction → stage).
+- Excel cache and stamp metadata are pre-generated so the pipeline can verify coverage on the first run.
+- Generated `.pptx` files are intentionally excluded from version control (size). Run the pipeline locally to recreate them.
 - Utility scripts `utils/random_photo_populator.py` and
-  `utils/random_inprogress_photo_populator.py` pull sample images from
-  `examples/source_photos`.
+  `utils/random_inprogress_photo_populator.py` pull sample images from `examples/source_photos`.
+
+---
 
 ## Repository layout
 
-- `configs/` - env parsing, default work profiles, layout constants.
-- `photo_reports/filters.py` - image selection and enhancement tuned per device.
-- `photo_reports/parser.py` - deterministic heuristics for stage detection and
-  address assignment.
-- `photo_reports/stamper.py` - Cairo-based overlay engine.
-- `photo_reports/pptx_creator.py` - slide authoring and adaptive layouts.
-- `utils/` - data quality checks, directory scaffolders, sample data populators.
+- `configs/` — env parsing, default work profiles, layout constants.
+- `photo_reports/filters.py` — image selection/enhancement tuned per device.
+- `photo_reports/parser.py` — heuristics for stage detection and address assignment.
+- `photo_reports/stamper.py` — overlay engine.
+- `photo_reports/pptx_creator.py` — slide authoring and stable layouts.
+- `photo_reports/pipeline.py` — orchestration glue for the end‑to‑end run.
+- `utils/` — data checks, directory scaffolders, sample data populators.
 
-## What this demonstrates for hiring managers
+---
 
-- **Automation mindset**: replaces manual, error-prone reporting with an
-  idempotent pipeline that can be scheduled or wrapped in a UI.
-- **Data wrangling**: cleans messy folder structures, infers missing metadata,
-  keeps an auditable Excel cache, and validates work plans.
-- **Presentation tooling**: programmatic PPT generation with adaptive layouts
-  and branded headers.
-- **Extensibility**: configuration-first approach makes it easy to plug into
-  other systems (e.g., future LLM assistants for anomaly narratives or
-  automatic photo tagging).
+## Scope & status
 
-## Roadmap ideas
+- Purpose‑built **process automation** around images and reports (CLI).
+- **Archived**: kept as a finished, reproducible work sample used in production.
 
-1. Sample dataset and before/after gallery for recruiters.
-2. Optional Streamlit or FastAPI front-end to trigger runs without the CLI.
-3. Hooks for AI-driven captions or anomaly summaries using the cached records.
-4. Packaging as a `pipx`-friendly CLI with typed configs.
+---
 
 ## About the author
 
-Alena Yashkina - lighting engineer/designer (9 years) who loves automating field
-operations with Python and AI tools. Looking for remote roles at the intersection
-of workflow automation, computer vision, and creative tooling.
-
-
+**Alena Yashkina** — automation‑minded engineer with 9 years in architectural lighting.
+Looking for **remote** roles in Python‑based automation and ops tooling. Languages: RU / EN (B2).
