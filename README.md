@@ -82,5 +82,8 @@ photo-report-generator/
 
 ## About the author
 
-Built by **Alena Yashkina** — lighting engineer turned AI-automation developer.  
-More info: GitHub profile / LinkedIn.
+Built by **Alena Yashkina** — lighting engineer turned AI‑automation developer.  
+Portfolio and contact links:
+
+- GitHub: https://github.com/AlenaYashkina
+- LinkedIn: https://www.linkedin.com/in/alena-yashkina-a9994a35a/
