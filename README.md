@@ -9,42 +9,37 @@ Built for architectural / festive lighting maintenance, where photographers brin
 
 ## Problem it solves
 
-During festive lighting periods, photographers walk through **all addresses in the city** every day and take photos of each decorative construction.
+Every festive lighting season we get **thousands of raw photos** from daily walk-throughs and separate repair jobs.  
+Before this tool, the office had to:
 
-If they notice an issue — **deep inspection**, **partial repair**, **slow blinking**, **flags**, **cleaning**, etc. — that photo is marked as **detected**.
+- manually list all photos in Excel
+- figure out **day, construction number, address, work type, issue stage** from folder names
+- invent realistic **date & time** for each shot
+- add watermarks in Photoshop
+- build PowerPoint reports for:
+  - daily walk-throughs (all constructions “as of today”)
+  - repair chains: **detected → in_progress → fixed** for each issue and work type
 
-A few hours later a maintenance crew goes to the same location and fixes the issue.  
-This produces two report types:
-
-- **Daily status reports** — “everything works today”, grouped by address  
-- **Work-done reports** — full chain: **detected → in_progress → fixed**
-
-Field photos come with **no EXIF time/location**, so the office previously had to:
-
-1. Open every photo manually  
-2. Add a watermark with **date, time, location** (derived from folder structure/logs)  
-3. Sort photos by **object**, **issue type**, **fix stage**  
-4. Insert them into PowerPoint in the correct order (**detected → in_progress → fixed**)  
-5. Build daily decks and work-done decks for the client  
-
-Manual Photoshop + PowerPoint took **hundreds of hours per large address** and constantly produced timestamp/ordering mistakes.
-
-This tool fully automated the workflow.
+This easily turned into **dozens of hours of routine** on every big project.
 
 ---
 
 ## What the tool does
 
-Given a root folder with daily photo drops, the tool:
+Given a root folder with photo drops, the tool:
 
-- scans all dated folders within a reporting window  
-- uses folder naming + a small metadata table to match each photo to  
-  **object**, **issue type**, **fix stage** (`detected`, `in_progress`, `fixed`)  
-- generates **stamped JPGs** with date, time and location (as watermarks)  
-- builds a **normalized folder structure** grouped by object / issue / stage  
-- assembles **PowerPoint decks**:  
-  - **daily reports**  
-  - **work-done reports** showing the full chain: detected → process → fixed  
+- walks all subfolders and collects photos from the input tree  
+- parses metadata from the path (day, construction number, work type, issue stage)  
+- writes everything into an **Excel table** (main control surface: can be edited by a non-technical user)
+- generates realistic **timestamps and locations** from a config and fills missing date/time
+- automatically rolls over to the **next day** if the time range crosses midnight
+- stamps each photo with a watermark: **date, time, location / address**
+- builds **PowerPoint decks**:
+  - daily reports for walk-throughs
+  - work-done reports with chains like *detected → in_progress → fixed* per construction / work type
+
+In practice the user only selects the photos and, if needed, tweaks the Excel file —  
+**all stamping and PPTX assembly is automated.**
 
 ---
 
@@ -52,12 +47,10 @@ Given a root folder with daily photo drops, the tool:
 
 On a real festive-lighting contract (~9,000 photos per peak month):
 
-- Manual reporting: **150–225 hours/month**  
-- Automated: **4–8 hours/month** (mostly reviewing)
+- manual reporting: **150–225 hours/month**
+- automated with this tool: **4–8 hours/month** (quality check only)
 
-→ Saves **3–5 full work weeks every month**  
-→ Eliminates timestamp and ordering mistakes  
-→ Produces consistent, client-ready PPTX decks
+This saves **3–5 full work weeks every month** and keeps reports consistent and client-ready.
 
 ---
 
