@@ -1,0 +1,10 @@
+requests
+pillow
+piexif
+python-dateutil
+pytz
+astral
+numpy
+opencv-python
+tqdm
+

@@ -751,7 +751,15 @@ def _render_daily_month(
     activity_text: str,
     period_text: str,
 ) -> None:
-    df_sorted = df_month.sort_values(["date_dt", "cn0"]).copy()
+    session_order = {"day": 0, "night": 1, "single": 2}
+    df_sorted = df_month.copy()
+    if "session" not in df_sorted.columns:
+        df_sorted["session"] = ""
+    df_sorted["__session_key"] = (
+        df_sorted["session"].fillna("single").astype(str).str.lower().map(session_order).fillna(len(session_order))
+    )
+    df_sorted.sort_values(["date_dt", "__session_key", "cn0"], inplace=True)
+    df_sorted.drop(columns=["__session_key"], inplace=True)
 
     prs = Presentation()
     prs.slide_width = Inches(13.33)
@@ -760,14 +768,17 @@ def _render_daily_month(
 
     buffer: List[Tuple[str, str]] = []
     prev_date: str | None = None
+    prev_session: str | None = None
 
     for _, row in df_sorted.iterrows():
         curr_date = row["base_date"]
-        if prev_date is not None and curr_date != prev_date:
+        curr_session = str(row.get("session", "") or "single").strip().lower()
+        if prev_date is not None and (curr_date != prev_date or curr_session != prev_session):
             if buffer:
                 insert_slides_adaptive(prs, buffer)
                 buffer.clear()
         prev_date = curr_date
+        prev_session = curr_session
 
         orig = Path(row["path"])
         base, ext, folder = orig.stem, orig.suffix, orig.parent

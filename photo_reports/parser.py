@@ -6,7 +6,7 @@ import random
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Sequence
 
 import pandas as pd
 
@@ -63,6 +63,28 @@ def _stage_sort_value(stage: Any) -> int:
 
 _MONTH_ORDER = {month: idx for idx, month in enumerate(SEASON_ORDER)}
 
+# Ensure deterministic ordering: Day sessions first, then Night, then sessions
+# with no explicit suffix ("single").
+SESSION_ORDER = ("day", "night", "single")
+SESSION_OFFSETS = {
+    "day": timedelta(hours=-12),
+    "single": timedelta(hours=0),
+    "night": timedelta(hours=0),
+}
+
+SESSION_ORDER_MAP = {name: idx for idx, name in enumerate(SESSION_ORDER)}
+
+
+def _detect_session(parts: Sequence[str]) -> str:
+    """Derive shooting session (day/night) from folder names."""
+    for part in parts:
+        lower = part.lower()
+        if lower.endswith(" night"):
+            return "night"
+        if lower.endswith(" day"):
+            return "day"
+    return "single"
+
 
 def _month_sort_value(date_str: Any) -> int:
     if not date_str or not isinstance(date_str, str):
@@ -76,7 +98,7 @@ def _month_sort_value(date_str: Any) -> int:
 
 def _sort_records_df(df: pd.DataFrame) -> pd.DataFrame:
     df_sorted = df.copy()
-    required_columns = ["base_date", "construction_number", "stage", "date", "time", "path", "work_type"]
+    required_columns = ["base_date", "construction_number", "stage", "date", "time", "path", "work_type", "session"]
     for column in required_columns:
         if column not in df_sorted.columns:
             df_sorted[column] = pd.Series(dtype="object")
@@ -92,12 +114,16 @@ def _sort_records_df(df: pd.DataFrame) -> pd.DataFrame:
         format="%d.%m.%Y %H:%M:%S",
         errors="coerce",
     )
+    session_series = df_sorted["session"].fillna("single")
+    df_sorted["__session_key"] = session_series.apply(
+        lambda value: SESSION_ORDER_MAP.get(str(value).strip().lower(), len(SESSION_ORDER))
+    )
     df_sorted.sort_values(
-        ["__month_order", "__base_dt", "__cn_key", "__stage_key", "__dt_key", "path"],
+        ["__month_order", "__base_dt", "__session_key", "__cn_key", "__stage_key", "__dt_key", "path"],
         inplace=True,
         kind="mergesort",
     )
-    df_sorted.drop(columns=["__month_order", "__base_dt", "__cn_key", "__stage_key", "__dt_key"], inplace=True)
+    df_sorted.drop(columns=["__month_order", "__base_dt", "__cn_key", "__stage_key", "__dt_key", "__session_key"], inplace=True)
     df_sorted.reset_index(drop=True, inplace=True)
     return df_sorted
 
@@ -136,29 +162,40 @@ def _normalise_locations(df: pd.DataFrame) -> None:
     df.loc[mask, "location"] = df.loc[mask].apply(resolve, axis=1)
 
 
-def _build_group_index(records: List[ImageRecord]) -> Dict[str, Dict[int, Dict[str, List[ImageRecord]]]]:
-    """Group records by base date, construction number and stage for scheduling."""
-    grouped: Dict[str, Dict[int, Dict[str, List[ImageRecord]]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(list))
-    )
-    for r in records:
-        cn = min(r.construction_number) if r.construction_number else -1
-        grouped[r.base_date][cn][r.stage or "none"].append(r)
-    return grouped
+def _split_by_session(
+    bucket: Dict[int, Dict[str, List[ImageRecord]]],
+) -> Dict[str, Dict[int, Dict[str, List[ImageRecord]]]]:
+    sessions: Dict[str, Dict[int, Dict[str, List[ImageRecord]]]] = {
+        key: defaultdict(lambda: defaultdict(list)) for key in SESSION_ORDER
+    }
+    for cn, stage_map in bucket.items():
+        for stage_name, records in stage_map.items():
+            for rec in records:
+                session = getattr(rec, "session", "single") or "single"
+                if session not in sessions:
+                    session = "single"
+                sessions[session][cn][stage_name].append(rec)
+    return sessions
 
 
-def _process_day(
-    bd: str,
+def _session_has_records(session_bucket: Dict[int, Dict[str, List[ImageRecord]]]) -> bool:
+    for cn_map in session_bucket.values():
+        for records in cn_map.values():
+            if records:
+                return True
+    return False
+
+
+def _process_session_bucket(
     bucket: Dict[int, Dict[str, List[ImageRecord]]],
     rng: random.Random,
+    session_start: datetime,
 ) -> List[ImageRecord]:
-    """Distribute timestamps and locations for a single base date."""
-    out: List[ImageRecord] = []
+    if not bucket:
+        return []
 
-    current = (
-        datetime.combine(datetime.strptime(bd, "%d.%m.%Y"), START_TIME)
-        + timedelta(seconds=rng.randint(0, int(DURATION_FOR_DAYS.total_seconds())))
-    )
+    out: List[ImageRecord] = []
+    current = session_start + timedelta(seconds=rng.randint(0, int(DURATION_FOR_DAYS.total_seconds())))
 
     for cn in sorted(bucket):
         for r in sorted(bucket[cn]["none"], key=lambda rec: rec.path):
@@ -209,14 +246,46 @@ def _process_day(
             last_inprogress_time = times[-1]
             cursor = cn_end
 
-        fixed_cns = [cn for cn in worked_cns if bucket[cn]["fixed"]]
-        if fixed_cns:
-            fixed_cursor = last_inprogress_time + random_gap()
-            for cn in fixed_cns:
-                for r in sorted(bucket[cn]["fixed"], key=lambda rec: rec.path):
-                    r.date, r.time = _stamp_dt_loc(r, fixed_cursor, rng)
-                    out.append(r)
-                    fixed_cursor += random_gap()
+    fixed_cns = [cn for cn in sorted(worked_cns) if bucket[cn]["fixed"]]
+    if fixed_cns:
+        fixed_cursor = last_evening_time + random_gap()
+        for cn in fixed_cns:
+            for r in sorted(bucket[cn]["fixed"], key=lambda rec: rec.path):
+                r.date, r.time = _stamp_dt_loc(r, fixed_cursor, rng)
+                out.append(r)
+                fixed_cursor += random_gap()
+
+    return out
+
+
+def _build_group_index(records: List[ImageRecord]) -> Dict[str, Dict[int, Dict[str, List[ImageRecord]]]]:
+    """Group records by base date, construction number and stage for scheduling."""
+    grouped: Dict[str, Dict[int, Dict[str, List[ImageRecord]]]] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(list))
+    )
+    for r in records:
+        cn = min(r.construction_number) if r.construction_number else -1
+        grouped[r.base_date][cn][r.stage or "none"].append(r)
+    return grouped
+
+
+def _process_day(
+    bd: str,
+    bucket: Dict[int, Dict[str, List[ImageRecord]]],
+    rng: random.Random,
+) -> List[ImageRecord]:
+    """Distribute timestamps and locations for a single base date."""
+    out: List[ImageRecord] = []
+
+    session_buckets = _split_by_session(bucket)
+    base_dt = datetime.combine(datetime.strptime(bd, "%d.%m.%Y"), START_TIME)
+
+    for session in SESSION_ORDER:
+        session_bucket = session_buckets.get(session)
+        if not session_bucket or not _session_has_records(session_bucket):
+            continue
+        session_start = base_dt + SESSION_OFFSETS.get(session, timedelta())
+        out.extend(_process_session_bucket(session_bucket, rng, session_start))
 
     return out
 
@@ -268,6 +337,7 @@ def collect_all_images(base_folder: Path) -> List[ImageRecord]:
                 construction_number=extract_construction_numbers(p),
                 path=str(p),
                 stage=detect_stage(p) if stage_present else None,
+                session=_detect_session(p.parts[:-1]),
             )
             # Limit work-type detection to meaningful parts of the path:
             # file name + two nearest folders and the detected stage.
@@ -322,9 +392,12 @@ def enrich_all_images(records: List[ImageRecord], *, refresh_cache: bool = True)
         for bd in sorted(grouped, key=lambda date: datetime.strptime(date, "%d.%m.%Y")):
             out.extend(_process_day(bd, grouped[bd], rng))
 
+        session_order = {"day": 0, "night": 1, "single": 2}
+
         out.sort(
             key=lambda rec: (
                 datetime.strptime(rec.base_date, "%d.%m.%Y"),
+                session_order.get((rec.session or "single").lower(), len(session_order)),
                 (min(rec.construction_number) if rec.construction_number else -1),
                 STAGE_ORDER.get(rec.stage, 0),
                 datetime.strptime(f"{rec.date} {rec.time}", "%d.%m.%Y %H:%M:%S"),

@@ -13,6 +13,7 @@ class ImageRecord:
     path: str
     stage: str | None = None
     work_type: str = ""
+    session: str = "single"
     time: str = ""
     location: str = ""
     base_date: str = field(init=False)
