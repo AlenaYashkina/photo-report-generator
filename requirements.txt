@@ -1,4 +1,9 @@
 requests
+torch>=2.1.0
+torchvision>=0.16.0
+diffusers>=0.24.0
+transformers>=4.35.0
+safetensors>=0.4.0
 pillow
 piexif
 python-dateutil
@@ -7,4 +12,3 @@ astral
 numpy
 opencv-python
 tqdm
-

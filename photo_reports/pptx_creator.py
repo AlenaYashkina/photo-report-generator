@@ -23,6 +23,7 @@ from configs.config import (
     END_DATE,
     REPORT_MODE,
     PHOTO_LABELS_ENABLED,
+    HIDE_HEADER_DATES,
 )
 from configs.env_utils import get_env_json, get_env_str
 from configs.pptx_config import (
@@ -108,6 +109,25 @@ def _month_bounds(dt: datetime) -> Tuple[datetime, datetime]:
     month_start = datetime(dt.year, dt.month, 1)
     month_end = datetime(dt.year, dt.month, last_day)
     return month_start, month_end
+
+
+def _natural_sort_key(value: Any) -> Tuple[Any, ...]:
+    """Return a key that sorts strings like Explorer (numbers in value are numeric)."""
+    if value is None:
+        return tuple()
+    text = str(value)
+    if not text:
+        return tuple()
+    parts = re.split(r"(\\d+)", text)
+    key: List[Tuple[int, Any]] = []
+    for part in parts:
+        if not part:
+            continue
+        if part.isdigit():
+            key.append((0, int(part)))
+        else:
+            key.append((1, part.lower()))
+    return tuple(key) if key else ((1, text),)
 
 
 
@@ -248,8 +268,12 @@ def add_blank_slide(prs: Presentation):
     return slide
 
 
-def format_construction_line(numbers: Sequence[int]) -> str:
-    """Return header text for one or multiple constructions."""
+def format_construction_line(numbers: Sequence[int], hide_single_number: bool = False) -> str:
+    """Return header text for one or multiple constructions.
+
+    When `hide_single_number` is True and only one construction is present, the
+    number is suppressed to avoid redundant labels in the presentation.
+    """
     unique: List[int] = []
     seen = set()
     for num in numbers:
@@ -261,6 +285,8 @@ def format_construction_line(numbers: Sequence[int]) -> str:
     if not unique:
         return ""
     if len(unique) == 1:
+        if hide_single_number:
+            return ""
         return CONSTRUCTION_SINGLE_TEMPLATE.format(num=unique[0])
     numbers = ", ".join(CONSTRUCTION_NUMBER_TEMPLATE.format(num=n) for n in unique)
     return f"{CONSTRUCTION_MULTI_PREFIX}{numbers}"
@@ -770,6 +796,17 @@ def _render_daily_month(
     prev_date: str | None = None
     prev_session: str | None = None
 
+    cn_pool: set[int] = set()
+    for nums in df_sorted["construction_number"]:
+        if not isinstance(nums, (list, tuple, set)):
+            continue
+        for raw in nums:
+            try:
+                cn_pool.add(int(raw))
+            except (TypeError, ValueError):
+                continue
+    hide_single_construction = len(cn_pool) == 1
+
     for _, row in df_sorted.iterrows():
         curr_date = row["base_date"]
         curr_session = str(row.get("session", "") or "single").strip().lower()
@@ -797,9 +834,11 @@ def _render_daily_month(
 
         date_line = row["base_date"]
         nums = row["construction_number"]
-        num_line = format_construction_line(nums)
+        num_line = format_construction_line(nums, hide_single_number=hide_single_construction)
         work_line = WORK_TITLES.get(row.get("work_type", ""), "")
-        header_lines = [date_line]
+        header_lines: List[str] = []
+        if not HIDE_HEADER_DATES:
+            header_lines.append(date_line)
         if num_line:
             header_lines.append(num_line)
         if work_line:
@@ -882,11 +921,24 @@ def _render_work_month(
     prs.slide_height = Inches(7.5)
     add_title_slide(prs, activity_text, period_text)
 
+    cn_pool: set[int] = set()
+    for rec in records:
+        nums = rec.get("cn_numbers") or ()
+        if not isinstance(nums, (list, tuple, set)):
+            continue
+        for raw in nums:
+            try:
+                cn_pool.add(int(raw))
+            except (TypeError, ValueError):
+                continue
+    hide_single_construction = len(cn_pool) == 1
+
     grouped: Dict[str, Dict[Tuple[int, ...], Dict[str, Dict[str, List[Dict[str, Any]]]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     )
     for r in records:
-        grouped[r["base_date"]][r["cn_numbers"]][r["stage"]][r["stage_title"]].append(r)
+        group_key = r.get("stage_group_key") or r.get("stage_title") or ""
+        grouped[r["base_date"]][r["cn_numbers"]][r["stage"]][group_key].append(r)
 
     def stage_sort_key(stage: str) -> Tuple[int, str]:
         return STAGE_ORDER.get(stage, 99), stage or ""
@@ -897,10 +949,22 @@ def _render_work_month(
             stage_map = cn_map[cn_key]
             for stage in sorted(stage_map, key=stage_sort_key):
                 title_groups = stage_map[stage]
-                for stage_title in sorted(title_groups.keys()):
-                    photos = title_groups[stage_title]
+
+                def title_sort_value(name: str) -> Tuple[Any, ...]:
+                    base_key = _natural_sort_key(name)
+                    suffix = ((1, str(name).lower()),)
+                    return base_key + suffix if base_key else suffix
+
+                for stage_key in sorted(title_groups.keys(), key=title_sort_value):
+                    photos = title_groups[stage_key]
                     if not photos:
                         continue
+
+                    stage_title_display = (
+                        photos[0].get("stage_title")
+                        or re.sub(r"^\\d+\\s+", "", str(stage_key)).strip()
+                        or str(stage_key)
+                    )
 
                     left_margin = int(WORK_SLIDE_SIDE_MARGIN)
                     right_margin = int(WORK_SLIDE_SIDE_MARGIN)
@@ -917,11 +981,13 @@ def _render_work_month(
                     min_gap = float(base_gap)
                     target_row_height = min(float(int(PHOTO_HEIGHT)), available_height_float)
 
-                    header_lines = [date]
-                    cn_line = format_construction_line(cn_key)
+                    header_lines: List[str] = []
+                    if not HIDE_HEADER_DATES:
+                        header_lines.append(date)
+                    cn_line = format_construction_line(cn_key, hide_single_number=hide_single_construction)
                     if cn_line:
                         header_lines.append(cn_line)
-                    header_lines.append(stage_title)
+                    header_lines.append(stage_title_display)
                     header_text = "\n".join(header_lines)
 
                     photo_infos: List[Tuple[str, float]] = []
@@ -1098,14 +1164,17 @@ def create_work_presentation(data: List[Dict[str, Any]], work_type: str | None =
         if not (start_dt <= base_dt <= end_dt):
             continue
 
-        stage_folder = Path(record["path"]).parent.name
-        stage_title = re.sub(r"^\d+\s+", "", stage_folder).strip() or fallback_titles.get(stage, stage)
+        stage_folder = Path(record["path"]).parent.name.strip()
+        fallback_title = fallback_titles.get(stage, stage)
+        stage_title = re.sub(r"^\d+\s+", "", stage_folder).strip() or fallback_title
+        stage_group_key = stage_folder or stage_title or fallback_title
 
         payload = {
             "base_date": base_date,
             "cn_numbers": cn_key,
             "stage": stage,
             "stage_title": stage_title,
+            "stage_group_key": stage_group_key,
             "path": record["path"],
         }
         month_key = _month_label(base_dt)

@@ -13,6 +13,7 @@ import pandas as pd
 from configs.config import (
     START_TIME, DURATION_FOR_DAYS, LOCATIONS,
     DURATION_BEFORE_WORKS, DURATION_FOR_WORKS, FOLDER_PATH,
+    REVERSE_LEAF_PHOTO_ORDER,
 )
 from configs.pptx_config import WORK_PATTERNS
 from configs.work_profiles import WORK_PROFILES, WORK_STAGE_TITLES, normalize_work_type
@@ -186,6 +187,30 @@ def _session_has_records(session_bucket: Dict[int, Dict[str, List[ImageRecord]]]
     return False
 
 
+def _order_records_in_bucket(records: Sequence[ImageRecord]) -> List[ImageRecord]:
+    """Order photos by path, optionally reversing within each leaf folder."""
+    if not records:
+        return []
+    if not REVERSE_LEAF_PHOTO_ORDER:
+        return sorted(records, key=lambda rec: rec.path)
+
+    grouped: Dict[Path, List[ImageRecord]] = {}
+    parent_order: List[Path] = []
+    for rec in records:
+        parent = Path(rec.path).parent
+        if parent not in grouped:
+            grouped[parent] = []
+            parent_order.append(parent)
+        grouped[parent].append(rec)
+
+    ordered: List[ImageRecord] = []
+    for parent in parent_order:
+        group = grouped[parent]
+        group.sort(key=lambda rec: Path(rec.path).name, reverse=True)
+        ordered.extend(group)
+    return ordered
+
+
 def _process_session_bucket(
     bucket: Dict[int, Dict[str, List[ImageRecord]]],
     rng: random.Random,
@@ -198,12 +223,12 @@ def _process_session_bucket(
     current = session_start + timedelta(seconds=rng.randint(0, int(DURATION_FOR_DAYS.total_seconds())))
 
     for cn in sorted(bucket):
-        for r in sorted(bucket[cn]["none"], key=lambda rec: rec.path):
+        for r in _order_records_in_bucket(bucket[cn]["none"]):
             r.date, r.time = _stamp_dt_loc(r, current, rng)
             out.append(r)
             current += random_gap()
 
-        for r in sorted(bucket[cn]["detected"], key=lambda rec: rec.path):
+        for r in _order_records_in_bucket(bucket[cn]["detected"]):
             r.date, r.time = _stamp_dt_loc(r, current, rng)
             out.append(r)
             current += random_gap()
@@ -225,7 +250,7 @@ def _process_session_bucket(
         last_inprogress_time = works_start
 
         for i, cn in enumerate(worked_cns):
-            photos = sorted(bucket[cn]["in_progress"], key=lambda rec: rec.path)
+            photos = _order_records_in_bucket(bucket[cn]["in_progress"])
             if not photos:
                 continue
 
@@ -250,7 +275,7 @@ def _process_session_bucket(
     if fixed_cns:
         fixed_cursor = last_evening_time + random_gap()
         for cn in fixed_cns:
-            for r in sorted(bucket[cn]["fixed"], key=lambda rec: rec.path):
+            for r in _order_records_in_bucket(bucket[cn]["fixed"]):
                 r.date, r.time = _stamp_dt_loc(r, fixed_cursor, rng)
                 out.append(r)
                 fixed_cursor += random_gap()

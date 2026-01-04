@@ -91,6 +91,8 @@ BATCH_WORK_TYPES: List[str] = get_env_json("BATCH_WORK_TYPES", WORK_TYPE_ORDER)
 
 RAW_IMAGE_MODE = get_env_str("RAW_IMAGE_MODE", "false").strip().lower() in {"1", "true", "yes"}
 PHOTO_LABELS_ENABLED = get_env_str("PHOTO_LABELS_ENABLED", "true").strip().lower() not in {"0", "false", "no"}
+HIDE_HEADER_DATES = get_env_str("HIDE_HEADER_DATES", "false").strip().lower() in {"1", "true", "yes"}
+REVERSE_LEAF_PHOTO_ORDER = get_env_str("REVERSE_LEAF_PHOTO_ORDER", "false").strip().lower() in {"1", "true", "yes"}
 
 LOCATION_GROUPS_DEFAULT = {
     "default": [
@@ -109,9 +111,9 @@ if not LOCATION_GROUPS:
 ACTIVE_LOCATION_GROUP = get_env_str("ACTIVE_LOCATION_GROUP", next(iter(LOCATION_GROUPS)))
 LOCATIONS = LOCATION_GROUPS.get(ACTIVE_LOCATION_GROUP) or next(iter(LOCATION_GROUPS.values()))
 
-START_TIME = time(18, 10)
-MIN_GAP_SEC = 45
-MAX_GAP_SEC = 75
+START_TIME = time(17, 40)
+MIN_GAP_SEC = 20
+MAX_GAP_SEC = 200
 DURATION_FOR_DAYS = timedelta(hours=2)
 DURATION_BEFORE_WORKS = timedelta(hours=2)
 DURATION_FOR_WORKS = timedelta(hours=3)
@@ -144,4 +146,6 @@ __all__ = [
     "logger",
     "RAW_IMAGE_MODE",
     "PHOTO_LABELS_ENABLED",
+    "HIDE_HEADER_DATES",
+    "REVERSE_LEAF_PHOTO_ORDER",
 ]
