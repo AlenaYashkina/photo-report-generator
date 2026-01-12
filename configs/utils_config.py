@@ -10,7 +10,7 @@ from configs.work_profiles import WORK_STAGE_TITLES
 
 BEFORE_JITTER = timedelta(minutes=15)
 WORKS_JITTER = timedelta(minutes=15)
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".jfif"}
 DATE_RE = re.compile(r'^(\d{1,2})[.\-](\d{1,2})(?:[.\-](\d{2,4}))?$')
 SUFFIX_RE = re.compile(
     r'(?i)(?:'
