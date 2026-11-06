@@ -90,6 +90,16 @@ This repository includes example PowerPoint decks that can be inspected without 
 
 They are **portfolio examples**, not evidence that a particular maintenance activity occurred on the dates shown. The pipeline may assign demonstration metadata and transform example images.
 
+## Review published sample photos locally
+
+A **private manual review** of the image pixels and presentation slides is still required. Metadata scans cannot determine whether someone appears in a photo, an address is readable, or publication rights exist. To prepare contact sheets on your machine (results are excluded from Git):
+
+```bash
+python examples/privacy_review_contact_sheet.py --root examples/reference/ExampleLocation
+```
+
+Open `.privacy-review/contact-sheet-*.jpg` and `.privacy-review/manual-review-checklist.csv`. Inspect full-resolution originals and PPTX/PDF/XLSX documents before marking them reviewed. **Do not upload these contact sheets or completed checklist to this public repository.**
+
 ## Sample data
 
 ```
