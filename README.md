@@ -62,6 +62,18 @@ The commands above are documented but **have not yet been validated on a clean W
 
 `.env.example` ships with an anonymised contract-style template so you can adjust settings without code changes.
 
+## Minimal reproducible demo (synthetic)
+
+After installing the main requirements, run:
+
+```powershell
+python examples/tiny_demo.py
+```
+
+The script creates `artifacts/tiny_demo.pptx` plus two tiny, clearly fictional input images. It uses the **same title and adaptive photo-slide layout functions** as the report generator and verifies the two images are embedded without altering the sources. It does not need the large `examples/reference` dataset, proprietary worksite photos or credentials.
+
+GitHub Actions also runs this example on Windows and attaches the generated PPTX and the two inputs to the workflow run. This is a *component-level layout demonstration*, not a full maintenance-report production run. Real report generation uses `python main.py` and needs a correctly structured input folder and configuration.
+
 ## Sample outputs
 
 This repository includes example PowerPoint decks that can be inspected without installing Python:
