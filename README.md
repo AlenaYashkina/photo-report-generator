@@ -34,9 +34,9 @@ Windows-first Python CLI that turns dated photo folders from field crews into st
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env  # set FOLDER_PATH, START_DATE, END_DATE, and presentation fields
+Copy-Item .env.example .env  # then set FOLDER_PATH, START_DATE, END_DATE and presentation fields
 python main.py
 ```
 
@@ -61,6 +61,16 @@ The commands above are documented but **have not yet been validated on a clean W
 - Location pools: `LOCATION_GROUPS`, `ACTIVE_LOCATION_GROUP` (deterministic address assignment in stamps).
 
 `.env.example` ships with an anonymised contract-style template so you can adjust settings without code changes.
+
+## Sample outputs
+
+This repository includes example PowerPoint decks that can be inspected without installing Python:
+
+- [Daily/CI example deck](<examples/reference/ExampleLocation/Sample District, Example Street 137A, pedestrian area. CI. December.pptx>)
+- [Snow-clearance example deck](<examples/reference/ExampleLocation/Sample District, Example Street 137A, pedestrian area. Snow. December.pptx>)
+- [Parsed-records Excel example](examples/reference/ExampleLocation/parsed_records.xlsx)
+
+They are **portfolio examples**, not evidence that a particular maintenance activity occurred on the dates shown. The pipeline may assign demonstration metadata and transform example images.
 
 ## Sample data
 
