@@ -62,6 +62,10 @@ The commands above are documented but **have not yet been validated on a clean W
 
 `.env.example` ships with an anonymised contract-style template so you can adjust settings without code changes.
 
+## Quick visual preview
+
+**[Open the two-page PDF sample](docs/synthetic-report-preview.pdf)** — actual export from the synthetic PPTX demonstration, with a title slide and sample photo layout. No Python, special fonts or original field photographs needed to inspect the layout. The preview is **fictional**, not an evidence-of-work report.
+
 ## Minimal reproducible demo (synthetic)
 
 After installing the main requirements, run:
