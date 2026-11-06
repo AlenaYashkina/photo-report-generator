@@ -138,3 +138,5 @@ Maintenance-mode portfolio sample; no guarantee of clean-install reproducibility
 ## Author
 
 Alena Yashkina - workflow automation specialist using AI-assisted coding (image/report pipelines, Windows CLI tools). Open to remote roles in process automation and AI-assisted ops tooling.
+
+Email: alenaiashkina1@gmail.com · Telegram: https://t.me/alena_yashkina
