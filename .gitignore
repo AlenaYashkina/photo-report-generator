@@ -52,3 +52,6 @@ reports/
 *.png
 *.mp4
 *.mov
+
+# Private visual privacy audit artifacts (never commit)
+.privacy-review/
