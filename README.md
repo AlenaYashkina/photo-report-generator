@@ -1,3 +1,5 @@
+[Русская версия](README.ru.md)
+
 # Photo Reports Automation (maintenance-mode sample)
 
 ![python](https://img.shields.io/badge/Python-3.10%2B-blue)
