@@ -1,0 +1,1 @@
+"""Safe synthetic portfolio examples."""
