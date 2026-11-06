@@ -1,11 +1,10 @@
-# Photo Reports Automation (archived)
+# Photo Reports Automation (maintenance-mode sample)
 
-![status](https://img.shields.io/badge/status-archived-lightgrey)
 ![python](https://img.shields.io/badge/Python-3.10%2B-blue)
 
 Windows-first Python CLI that turns dated photo folders from field crews into stamped images and PowerPoint decks (daily and per work type). Built for a production maintenance contract; kept as a reproducible work sample.
 
-> Archived snapshot: stable and used in production; no new features planned.
+> Maintenance-mode work sample. The GitHub repository is **not** archived; this is not a claim of currently supported production software.
 
 ## Why it exists
 
@@ -37,13 +36,16 @@ Windows-first Python CLI that turns dated photo folders from field crews into st
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
-pip install pandas python-pptx pycairo  # dependencies used by the pipeline but not pinned above
 copy .env.example .env  # set FOLDER_PATH, START_DATE, END_DATE, and presentation fields
 python main.py
 ```
 
 - Input: dated photo folders under `FOLDER_PATH`.
 - Output: `parsed_records.xlsx`, stamped JPG/PNG files, and `.pptx` decks in the same workspace.
+
+Experimental ML utilities (not required for the basic reporting workflow) use `pip install -r requirements-ml.txt`. Verify that Cairo and other native system dependencies are available on Windows before running the image-stamping flow.
+
+The commands above are documented but **have not yet been validated on a clean Windows installation**.
 
 ## Configuration cheatsheet (`.env` or `configs/config.py`)
 
@@ -71,7 +73,7 @@ examples/
     Works/...
 ```
 
-Run the pipeline with defaults to regenerate the bundled Excel cache and PPTX decks locally.
+The supplied photo datasets and generated outputs should be reviewed for private names, faces, exact locations and metadata before public reuse. Sample images, assigned dates and inpainted content are **demonstrations**, never proof that maintenance work happened at a given time.
 
 ## Helper scripts
 
@@ -93,8 +95,8 @@ Run the pipeline with defaults to regenerate the bundled Excel cache and PPTX de
 
 ## Status
 
-Production-ready snapshot kept as an archived work sample; no new features planned. Local config tweaks are still possible if you reuse the pipeline.
+Maintenance-mode portfolio sample; no guarantee of clean-install reproducibility until a fresh Windows run is recorded.
 
 ## Author
 
-Alena Yashkina - Python-first automation engineer (image/report pipelines, Windows CLI tools). Open to remote roles in process automation and AI-assisted ops tooling.
+Alena Yashkina - workflow automation specialist using AI-assisted coding (image/report pipelines, Windows CLI tools). Open to remote roles in process automation and AI-assisted ops tooling.
