@@ -1,0 +1,17 @@
+name: Example metadata privacy inventory
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install Pillow
+      - run: python utils/audit_example_metadata.py
