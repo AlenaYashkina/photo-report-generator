@@ -9,8 +9,12 @@ import argparse
 import hashlib
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
+
+# Allow direct execution from the examples/ directory on a fresh checkout.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def create_demo(output: Path) -> None:
